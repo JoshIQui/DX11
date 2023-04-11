@@ -136,6 +136,10 @@ void Game::LoadAssetsAndCreateEntities()
 	std::shared_ptr<SimplePixelShader> pixelShader		= LoadShader(SimplePixelShader, L"PixelShader.cso");
 	std::shared_ptr<SimplePixelShader> pixelShaderPBR	= LoadShader(SimplePixelShader, L"PixelShaderPBR.cso");
 	std::shared_ptr<SimplePixelShader> solidColorPS		= LoadShader(SimplePixelShader, L"SolidColorPS.cso");
+
+	std::shared_ptr<SimpleVertexShader> fullscreenVS = LoadShader(SimpleVertexShader, L"FullscreenVS.cso");
+	std::shared_ptr<SimplePixelShader> irradiancePS = LoadShader(SimplePixelShader, L"IBLIrradianceMapPS.cso");
+	std::shared_ptr<SimplePixelShader> specularPS = LoadShader(SimplePixelShader, L"IBLSpecularConvolutionPS.cso");
 	
 	std::shared_ptr<SimpleVertexShader> skyVS = LoadShader(SimpleVertexShader, L"SkyVS.cso");
 	std::shared_ptr<SimplePixelShader> skyPS  = LoadShader(SimplePixelShader, L"SkyPS.cso");
@@ -213,6 +217,9 @@ void Game::LoadAssetsAndCreateEntities()
 		cubeMesh,
 		skyVS,
 		skyPS,
+		fullscreenVS.get(),
+		irradiancePS.get(),
+		specularPS.get(),
 		samplerOptions,
 		device,
 		context);

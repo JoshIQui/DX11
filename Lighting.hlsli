@@ -361,21 +361,6 @@ float3 IndirectSpecular(TextureCube envMap, int mips, Texture2D brdfLookUp, Samp
 
 // === UTILITY FUNCTIONS for Indirect PBR Pre-Calculations ====================
 
-// Hammersley sampling
-// Useful to get some fairly-well-distributed (spread out) points on a 2D grid
-// http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
-//  - The X value of the float2 is simply i/N (current value/total values),
-//     which will be evenly distributed between 0 to 1 as i goes from 0 to N
-//  - The Y value will "jump around" a bit using the radicalInverse trick,
-//     but still end up being fairly evenly distributed between 0 and 1
-//
-// i - The current value (between 0 and N)
-// N - The total number of samples you'll be taking
-//
-float2 Hammersley2d(uint i, uint N) {
-	return float2(float(i) / float(N), radicalInverse_VdC(i));
-}
-
 // Part of the Hammersley 2D sampling function.  More info here:
 // http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
 // This function is useful for computing numbers in the Van der Corput sequence
@@ -411,6 +396,21 @@ float radicalInverse_VdC(uint bits) {
 	bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
 	bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
 	return float(bits) * 2.3283064365386963e-10; // / 0x100000000
+}
+
+// Hammersley sampling
+// Useful to get some fairly-well-distributed (spread out) points on a 2D grid
+// http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
+//  - The X value of the float2 is simply i/N (current value/total values),
+//     which will be evenly distributed between 0 to 1 as i goes from 0 to N
+//  - The Y value will "jump around" a bit using the radicalInverse trick,
+//     but still end up being fairly evenly distributed between 0 and 1
+//
+// i - The current value (between 0 and N)
+// N - The total number of samples you'll be taking
+//
+float2 Hammersley2d(uint i, uint N) {
+	return float2(float(i) / float(N), radicalInverse_VdC(i));
 }
 
 
