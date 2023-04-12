@@ -12,6 +12,7 @@ Sky::Sky(
 	SimpleVertexShader* fullscreenVS,
 	SimplePixelShader* irradiancePS,
 	SimplePixelShader* specularPS,
+	SimplePixelShader* brdfPS,
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerOptions, 
 	Microsoft::WRL::ComPtr<ID3D11Device> device, 
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> context)
@@ -32,13 +33,14 @@ Sky::Sky(
 
 	IBLCreateIrradianceMap(fullscreenVS, irradiancePS);
 	IBLCreateConvolvedSpecularMap(fullscreenVS, specularPS);
-	IBLCreateBRDFLookUpTexture();
+	IBLCreateBRDFLookUpTexture(fullscreenVS, brdfPS);
 }
 
 Sky::Sky(
 	SimpleVertexShader* fullscreenVS,
 	SimplePixelShader* irradiancePS,
 	SimplePixelShader* specularPS,
+	SimplePixelShader* brdfPS,
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cubeMap,
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerOptions,
 	Microsoft::WRL::ComPtr<ID3D11Device> device,
@@ -53,7 +55,7 @@ Sky::Sky(
 
 	IBLCreateIrradianceMap(fullscreenVS, irradiancePS);
 	IBLCreateConvolvedSpecularMap(fullscreenVS, specularPS);
-	IBLCreateBRDFLookUpTexture();
+	IBLCreateBRDFLookUpTexture(fullscreenVS, brdfPS);
 }
 
 Sky::Sky(
@@ -69,6 +71,7 @@ Sky::Sky(
 	SimpleVertexShader* fullscreenVS,
 	SimplePixelShader* irradiancePS,
 	SimplePixelShader* specularPS,
+	SimplePixelShader* brdfPS,
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerOptions,
 	Microsoft::WRL::ComPtr<ID3D11Device> device,
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> context)
@@ -89,7 +92,7 @@ Sky::Sky(
 
 	IBLCreateIrradianceMap(fullscreenVS, irradiancePS);
 	IBLCreateConvolvedSpecularMap(fullscreenVS, specularPS);
-	IBLCreateBRDFLookUpTexture();
+	IBLCreateBRDFLookUpTexture(fullscreenVS, brdfPS);
 }
 
 Sky::Sky(
@@ -105,6 +108,7 @@ Sky::Sky(
 	SimpleVertexShader* fullscreenVS,
 	SimplePixelShader* irradiancePS,
 	SimplePixelShader* specularPS,
+	SimplePixelShader* brdfPS,
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerOptions,
 	Microsoft::WRL::ComPtr<ID3D11Device> device,
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> context)
@@ -125,7 +129,7 @@ Sky::Sky(
 
 	IBLCreateIrradianceMap(fullscreenVS, irradiancePS);
 	IBLCreateConvolvedSpecularMap(fullscreenVS, specularPS);
-	IBLCreateBRDFLookUpTexture();
+	IBLCreateBRDFLookUpTexture(fullscreenVS, brdfPS);
 }
 
 Sky::~Sky()
@@ -468,6 +472,67 @@ void Sky::IBLCreateConvolvedSpecularMap(SimpleVertexShader* fullscreenVS, Simple
 	}
 }
 
-void Sky::IBLCreateBRDFLookUpTexture()
+void Sky::IBLCreateBRDFLookUpTexture(SimpleVertexShader* fullscreenVS, SimplePixelShader* brdfPS)
 {
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> brdfFinalTexture;
+
+	// Create the final irradiance cube texture
+	D3D11_TEXTURE2D_DESC texDesc = {};
+	texDesc.Width = IBLLookUpTextureSize; // One of your constants
+	texDesc.Height = IBLLookUpTextureSize; // Same as width
+	texDesc.ArraySize = 1; // Not a cube map, so array size is simply 1
+	texDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE; // Will be used as both
+	texDesc.Format = DXGI_FORMAT_R16G16_UNORM; // Basic texture format
+	texDesc.MipLevels = 1; // Only need 1
+	texDesc.MiscFlags = 0; // It's a cube map
+	texDesc.SampleDesc.Count = 1; // Can't be zero
+	device->CreateTexture2D(&texDesc, 0, brdfFinalTexture.GetAddressOf());
+
+	// Create an SRV for the BRDF look-up texture
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D; // Just a regular 2d texture
+	srvDesc.Texture2D.MipLevels = 1; // Just one mip
+	srvDesc.Texture2D.MostDetailedMip = 0; // Accessing the first (and only) mip
+	srvDesc.Format = texDesc.Format; // Same format as texture
+	device->CreateShaderResourceView(
+		brdfFinalTexture.Get(), &srvDesc, brdfLookUpTexture.GetAddressOf());
+
+	// Save current render target and depth buffer
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> prevRTV;
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> prevDSV;
+	context->OMGetRenderTargets(1, prevRTV.GetAddressOf(), prevDSV.GetAddressOf());
+
+	// Save current viewport
+	unsigned int vpCount = 1;
+	D3D11_VIEWPORT prevVP = {};
+	context->RSGetViewports(&vpCount, &prevVP);
+
+	// Set states that may or may not be set yet
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	fullscreenVS->SetShader();
+	brdfPS->SetShader();
+
+	// Make a render target view for this whole texture
+	D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+	rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D; // This points to a Texture2D
+	rtvDesc.Texture2D.MipSlice = 0; // Which mip are we rendering into?
+	rtvDesc.Format = texDesc.Format; // Match the format of the texture
+
+	// Create the RTV itself
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> rtv;
+	device->CreateRenderTargetView(brdfFinalTexture.Get(), &rtvDesc, rtv.GetAddressOf());
+
+	// Clear and set this render target
+	float black[4] = {}; // Initialize to all zeroes
+	context->ClearRenderTargetView(rtv.Get(), black);
+	context->OMSetRenderTargets(1, rtv.GetAddressOf(), 0);
+
+	// Render exactly 3 vertices
+	context->Draw(3, 0);
+
+	// Ensure we flush the graphics pipe to so that we don't cause
+	// a hardware timeout which can result in a driver crash
+	// NOTE: This might make C++ sit and wait for a sec! Better than a crash!
+	context->Flush();
 }

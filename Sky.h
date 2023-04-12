@@ -21,6 +21,7 @@ public:
 		SimpleVertexShader* fullscreenVS,
 		SimplePixelShader* irradiancePS,
 		SimplePixelShader* specularPS,
+		SimplePixelShader* brdfPS,
 		Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerOptions, 	
 		Microsoft::WRL::ComPtr<ID3D11Device> device,
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext> context
@@ -31,6 +32,7 @@ public:
 		SimpleVertexShader* fullscreenVS,
 		SimplePixelShader* irradiancePS,
 		SimplePixelShader* specularPS,
+		SimplePixelShader* brdfPS,
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cubeMap,
 		Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerOptions,
 		Microsoft::WRL::ComPtr<ID3D11Device> device,
@@ -51,6 +53,7 @@ public:
 		SimpleVertexShader* fullscreenVS,
 		SimplePixelShader* irradiancePS,
 		SimplePixelShader* specularPS,
+		SimplePixelShader* brdfPS,
 		Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerOptions,
 		Microsoft::WRL::ComPtr<ID3D11Device> device,
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext> context
@@ -70,6 +73,7 @@ public:
 		SimpleVertexShader* fullscreenVS,
 		SimplePixelShader* irradiancePS,
 		SimplePixelShader* specularPS,
+		SimplePixelShader* brdfPS,
 		Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerOptions,
 		Microsoft::WRL::ComPtr<ID3D11Device> device,
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext> context
@@ -130,6 +134,6 @@ private:
 
 	void IBLCreateIrradianceMap(SimpleVertexShader* fullscreenVS, SimplePixelShader* irradiancePS);
 	void IBLCreateConvolvedSpecularMap(SimpleVertexShader* fullscreenVS, SimplePixelShader* specularPS);
-	void IBLCreateBRDFLookUpTexture();
+	void IBLCreateBRDFLookUpTexture(SimpleVertexShader* fullscreenVS, SimplePixelShader* brdfPS);
 };
 
