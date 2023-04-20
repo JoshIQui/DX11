@@ -7,6 +7,7 @@
 #include "SimpleShader.h"
 #include "Lights.h"
 #include "Sky.h"
+#include "Renderer.h"
 
 #include <DirectXMath.h>
 #include <wrl/client.h>
@@ -28,6 +29,8 @@ public:
 	void Draw(float deltaTime, float totalTime);
 
 private:
+
+	std::shared_ptr<Renderer> renderer;
 
 	// Our scene
 	std::vector<std::shared_ptr<GameEntity>> entities;
